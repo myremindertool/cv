@@ -9,12 +9,12 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import pandas as pd
 import json
-import openai  # ✅ Use this form of import
+import openai
 
-# ✅ Initialize OpenAI using the builder method (Streamlit-safe)
-client = openai.OpenAI(api_key=st.secrets["openai"]["api_key"])
+# ✅ Use stable method for OpenAI (avoids Streamlit SDK crash)
+openai.api_key = st.secrets["openai"]["api_key"]
 
-# Column order for Google Sheets & Excel
+# Column order for Excel/Sheets
 FIELDS_ORDER = [
     "Name", "Nationality", "Qualification", "Experience",
     "Current Salary", "Expected Salary", "Position", "Source",
@@ -41,7 +41,7 @@ def extract_text_from_docx(uploaded_file):
     doc = docx.Document(uploaded_file)
     return "\n".join(p.text for p in doc.paragraphs)
 
-# Extract fields from CV using GPT-4
+# Extract fields with GPT
 def extract_fields_with_ai(text):
     prompt = (
         "Extract the following fields from this CV:\n"
@@ -49,7 +49,7 @@ def extract_fields_with_ai(text):
         f"CV Text:\n{text}\n\n"
         "Respond in JSON format with keys: Name, Nationality, Qualification."
     )
-    response = client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2
@@ -60,14 +60,14 @@ def extract_fields_with_ai(text):
     except:
         return {key: "" for key in ["Name", "Nationality", "Qualification"]}
 
-# Normalize date like "Jan 2021"
+# Parse "Jan 2020 – Present" to datetime
 def normalize_date(date_str):
     try:
         return datetime.strptime(date_str, "%b %Y")
     except:
         return None
 
-# Extract work periods
+# Extract work date ranges from text
 def extract_experience_blocks(text):
     pattern = re.compile(r"(?i)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s,]+\d{4}\s*[-–]+\s*(Present|\d{4})")
     matches = pattern.findall(text)
@@ -79,7 +79,7 @@ def extract_experience_blocks(text):
             results.append((start, end))
     return results
 
-# Merge overlapping periods
+# Merge overlapping date ranges
 def merge_periods(periods):
     periods.sort()
     merged = []
@@ -94,12 +94,12 @@ def merge_periods(periods):
                 merged.append((start, end))
     return merged
 
-# Calculate total experience
+# Total experience from merged periods
 def calculate_total_experience(periods):
     total_months = sum((relativedelta(e, s).years * 12 + relativedelta(e, s).months) for s, e in periods)
     return f"{total_months // 12} years {total_months % 12} months"
 
-# Generate Excel download
+# Create downloadable Excel file
 def generate_excel_download(data):
     buffer = BytesIO()
     df = pd.DataFrame([data])
