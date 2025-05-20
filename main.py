@@ -11,8 +11,8 @@ import pandas as pd
 import json
 import openai
 
-# ✅ OpenAI client setup (v1.10+ safe)
-client = openai.OpenAI(api_key=st.secrets["openai"]["api_key"])
+# ✅ Use stable legacy-compatible OpenAI setup
+openai.api_key = st.secrets["openai"]["api_key"]
 
 # Column order for Excel and Sheets
 FIELDS_ORDER = [
@@ -49,7 +49,7 @@ def extract_fields_with_ai(text):
         f"CV Text:\n{text}\n\n"
         "Respond in JSON format with keys: Name, Nationality, Qualification."
     )
-    response = client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2
