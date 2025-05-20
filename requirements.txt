@@ -1,4 +1,4 @@
-openai==1.10.0
+openai
 streamlit
 gspread
 google-auth
