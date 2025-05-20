@@ -1,0 +1,8 @@
+streamlit
+pdfplumber
+docx
+pandas
+openai==1.10.0
+python-docx
+python-dateutil
+openpyxl
