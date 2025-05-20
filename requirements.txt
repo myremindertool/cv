@@ -1,8 +1,9 @@
-streamlit
-pdfplumber
-docx
-pandas
 openai==1.10.0
+streamlit
+gspread
+google-auth
+pdfplumber
 python-docx
 python-dateutil
+pandas
 openpyxl
