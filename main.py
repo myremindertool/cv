@@ -11,10 +11,10 @@ import pandas as pd
 import json
 import openai
 
-# ✅ Use stable method for OpenAI (avoids Streamlit SDK crash)
-openai.api_key = st.secrets["openai"]["api_key"]
+# ✅ OpenAI client setup (v1.10+ safe)
+client = openai.OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-# Column order for Excel/Sheets
+# Column order for Excel and Sheets
 FIELDS_ORDER = [
     "Name", "Nationality", "Qualification", "Experience",
     "Current Salary", "Expected Salary", "Position", "Source",
@@ -41,7 +41,7 @@ def extract_text_from_docx(uploaded_file):
     doc = docx.Document(uploaded_file)
     return "\n".join(p.text for p in doc.paragraphs)
 
-# Extract fields with GPT
+# Extract fields using GPT-4
 def extract_fields_with_ai(text):
     prompt = (
         "Extract the following fields from this CV:\n"
@@ -49,7 +49,7 @@ def extract_fields_with_ai(text):
         f"CV Text:\n{text}\n\n"
         "Respond in JSON format with keys: Name, Nationality, Qualification."
     )
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2
@@ -67,7 +67,7 @@ def normalize_date(date_str):
     except:
         return None
 
-# Extract work date ranges from text
+# Extract work experience date ranges from text
 def extract_experience_blocks(text):
     pattern = re.compile(r"(?i)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s,]+\d{4}\s*[-–]+\s*(Present|\d{4})")
     matches = pattern.findall(text)
@@ -79,7 +79,7 @@ def extract_experience_blocks(text):
             results.append((start, end))
     return results
 
-# Merge overlapping date ranges
+# Merge overlapping work periods
 def merge_periods(periods):
     periods.sort()
     merged = []
@@ -94,12 +94,12 @@ def merge_periods(periods):
                 merged.append((start, end))
     return merged
 
-# Total experience from merged periods
+# Calculate total experience
 def calculate_total_experience(periods):
     total_months = sum((relativedelta(e, s).years * 12 + relativedelta(e, s).months) for s, e in periods)
     return f"{total_months // 12} years {total_months % 12} months"
 
-# Create downloadable Excel file
+# Generate downloadable Excel file
 def generate_excel_download(data):
     buffer = BytesIO()
     df = pd.DataFrame([data])
